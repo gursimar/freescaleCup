@@ -1,0 +1,149 @@
+% This is the normal script. All the variable 
+
+%Some Constants
+START = 4;
+LB_Width = 43;
+UB_Width = 55;
+MIN_FINGER = 40;
+RIGHT_GUARD = 85;
+LEFT_GUARD = 45;
+DIFF =0;
+
+% Other variables
+s = serial('COM41');
+set(s,'BaudRate',115200);
+set(s,'InputBufferSize',1024)
+fopen(s);
+
+sen_val = zeros(1,128);
+h1 = subplot (2,1,1);
+ylim ([0,300] );
+%ylim ('auto');
+xlim([1 128]);
+
+% Prepare the plot
+x=1:128;
+lh=line(x,sen_val,'marker','*','markersize',5,'linestyle','-');
+
+h2 = subplot (2,1,2);
+ylim ([-60 60]);
+%ylim ('auto');
+xlim([1 128]);
+lh2=line(x(1:end-1),sen_val(1:end-1),'marker','*','markersize',5,'linestyle','-');
+hold on;
+lh3=line(64,-15:0.1:15);
+hold off;
+
+% Infifnite loop to poll the sensor
+try
+    while 1
+%Fetching the data
+        fprintf(s,'6');
+        out = fscanf(s);
+    
+% Converting the data in decimal format
+        for i = 1:128
+            sen_val(i) = str2num(out((6*i)-5:(6*i)));
+        end
+    
+% Taking differentials        
+        dy_dx = diff(sen_val);  % apprantly its dy/dx 
+        
+% Finding Maximum and Minimum
+        [max_dydx,M] = max (dy_dx(START:end-START));
+        [min_dydx,m] = min (dy_dx(START:end-START));       % one less than sen_val
+        
+% START OF MAIN STATE MACHINE ALGO
+%       Input - M, m
+%       Output - centre
+
+% 1. Calculate width
+        width = M - m;
+        
+        if (width> LB_Width && width < UB_Width)
+            % Everything is assumed normal.
+            % IF there is a spike (very less probability)
+            % it should be allowed to process, it can't misguide the car.      
+            'skip_width'
+
+% 2. Width is not right. Check for any psuedo max/ mins. We are assuming that
+%    there must be atleast one pseudo in this case. As width is not right.
+        else
+            % For max
+            DIFF  = abs(max_dydx);
+                
+            if( DIFF > MIN_FINGER) % M is not pseudo
+                % sure (according to assumption above) m is pseudo.
+                
+                if (M < LEFT_GUARD)
+                    % Guard detected
+                    m = 0;
+                else
+                    % Means that there had been a spike
+                    % skip the case
+                    'skip_1_M'
+                    % Become cautious and increase integration time.
+                    continue;
+                end
+                
+            else
+                % M is pseudo and m can also be pseudo
+                % To test m is pseudo or not.                
+                DIFF = abs(min_dydx);
+                
+                if ( DIFF > MIN_FINGER) % m is not pseudo
+                    % only M is pseudo
+                    
+                    if (m > RIGHT_GUARD)
+                        % Guard detected
+                        M = 128;
+                    else
+                        % Means that there had been a spike
+                        % skip the case
+                        % Become cautious and increase integration time.
+                        continue;
+                    end
+                                        
+                else
+                    % both are pseudo
+                    % So either a ALL_BALCK (CROSS) or ALL_WHITE
+                    
+                    % Skip the case
+                    % Become cautious and increase integration time.
+                    continue;
+                end
+            end
+        end
+            
+% Calculate centre
+        centre = ((M+m)/2);    
+        
+% Output vaiables
+        %M
+        %m
+        width = M-m
+        DIFF
+        %SEN_VAL_M = sen_val(M)
+        %SEN_VAL_m = sen_val(m)
+        %diff
+        %max_dydx
+        %min_dydx
+     
+% Plot  results
+        set(lh,'xdata',x(START:end-START),'ydata',sen_val(START:end-START));
+        set(lh2,'xdata',x(START:end-1-START),'ydata',dy_dx(START:end-START));
+        hold on;
+        set(lh3,'xdata',centre,'ydata',0,'marker','*','markersize',20,'color','r');
+        hold off;
+        
+        pause(.0001); % <- a time consuming OP
+        %pause
+    end
+catch
+    disp('--> coninuous loop was manually interrupted')
+end
+    
+% clear the data
+fclose(s)
+delete(s)
+clear s
