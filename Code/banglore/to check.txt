@@ -1,0 +1,26 @@
+TO TEST
+
+MATLAB
+1. width
+2. integration time (finger-50 ///   time<50000)
+3. 
+
+READINGS
+WIDTH = 20
+INT TIME = 20000
+HEIGHT(FINGER) = 100
+
+
+
+to RUN another main code
+1. WIDTH
+2. 
+2. dc speed
+3. integration time
+4. GUARD range contraction
+
+
+to check in MAIN CODE
+2. dc speed
+3. integration time
+4. GUARD range contraction

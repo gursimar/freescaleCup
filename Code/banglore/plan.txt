@@ -1,0 +1,9 @@
+if (safe code (20000 400)  works)
+{
+	safe code (15000 450)
+}
+
+else
+{
+	safe code (20000 350)
+}
